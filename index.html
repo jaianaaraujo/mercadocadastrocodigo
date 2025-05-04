@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <link rel="icon" type="" href="/compre_bem.ico">
+  <title>Mercado Compre Bem</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f4;
+      margin: 0;
+      padding: 0;
+    }
+    .login-container, .main-container {
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+      background: white;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      border-radius: 8px;
+    }
+    h1, h2 {
+      text-align: center;
+      color: #0033cc;
+    }
+    label, input, button {
+      display: block;
+      width: 100%;
+      margin-bottom: 10px;
+    }
+    input, button {
+      padding: 10px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+    button {
+      background-color: #0033cc;
+      color: white;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #001a99;
+    }
+    .logo {
+      max-width: 200px;
+      display: block;
+      margin: 0 auto 20px;
+    }
+    .hidden { display: none; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    table, th, td {
+      border: 1px solid #ccc;
+    }
+    th, td {
+      padding: 8px;
+      text-align: center;
+    }
+    .action-btn {
+      margin: 0 5px;
+      padding: 5px 10px;
+      font-size: 14px;
+    }
+    #proximoCodigoCard {
+      background-color: #175b12;
+      padding: 10px;
+      border-radius: 5px;
+      font-weight: bold;
+      text-align: center;
+      border: 1px solid #ccc;
+      margin-bottom: 20px;
+      color: #FFFF;
+    }
+    @media screen and (max-width: 600px) {
+      input, button {
+        font-size: 16px;
+      }
+      table, thead, tbody, th, td, tr {
+        display: block;
+        width: 100%;
+      }
+      thead {
+        display: none;
+      }
+      tr {
+        margin-bottom: 15px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        padding: 10px;
+        background-color: #fff;
+      }
+      td {
+        text-align: left;
+        padding-left: 50%;
+        position: relative;
+      }
+      td:before {
+        position: absolute;
+        left: 10px;
+        top: 10px;
+        font-weight: bold;
+      }
+      td:nth-of-type(1):before { content: "Produto:"; }
+      td:nth-of-type(2):before { content: "Código:"; }
+      td:nth-of-type(3):before { content: "Ações:"; }
+    }
+
+    /* Estilos para o Modal */
+.modal {
+  display: none; /* Oculto por padrão */
+  position: fixed;
+  z-index: 9999;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  background-color: rgba(0,0,0,0.5); /* Fundo semi-transparente */
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-content {
+  background-color: #fff;
+  margin: auto;
+  padding: 20px;
+  border: 2px solid #0033cc;
+  width: 80%;
+  max-width: 400px;
+  border-radius: 10px;
+  text-align: center;
+  position: relative;
+}
+
+.close-button {
+  color: #aaa;
+  position: absolute;
+  top: 10px;
+  right: 20px;
+  font-size: 28px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.close-button:hover,
+.close-button:focus {
+  color: #000;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+  </style>
+</head>
+
+<body>
+<!-- Modal de Alerta Personalizado -->
+<div id="customAlert" class="modal">
+    <div class="modal-content">
+      <span class="close-button" onclick="closeAlert()">&times;</span>
+      <p id="alertMessage"></p>
+    </div>
+  </div>
+  
+
+<div class="login-container" id="login">
+  <img src="/compre_bem.png" alt="Logo Mercado" class="logo">
+  <h1>Login - Sistema de cadastrar código</h1>
+  <label for="user">Usuário</label>
+  <input type="text" id="user">
+  <label for="pass">Senha</label>
+  <input type="password" id="pass">
+  <button onclick="login()">Entrar</button>
+</div>
+
+<div class="main-container hidden" id="main">
+  <img src="/compre_bem.png" alt="Logo Mercado" class="logo">
+  <h1>Cadastro de Mercadorias</h1>
+
+  <div id="proximoCodigoCard">Próximo código disponível: <span id="proximoCodigo">Carregando...</span></div>
+
+  <label>Produto:</label>
+  <input type="text" id="produto">
+  <label>Código:</label>
+  <input type="text" id="codigo">
+  <button onclick="adicionarItem()">Adicionar</button>
+
+  <h2>Buscar Produto</h2>
+  <input type="text" id="buscar" placeholder="Buscar produto..." onkeyup="buscarItem()">
+
+  <h2>Lista de Produtos</h2>
+  <table>
+    <thead>
+      <tr><th>Produto</th><th>Código</th><th>Ações</th></tr>
+    </thead>
+    <tbody id="resultado"></tbody>
+  </table>
+</div>
+
+<script>
+  const scriptURL = "https://script.google.com/macros/s/AKfycbxz7lfpwGrjN5Y-nkaKTCg4hRrtGugtZQRZeUvhxrF6IfcnBbBhySwUWvgPptaVlYSj/exec";
+
+  function login() {
+    const u = document.getElementById("user").value;
+    const p = document.getElementById("pass").value;
+    if (u === "1" && p === "1") {
+      document.getElementById("login").classList.add("hidden");
+      document.getElementById("main").classList.remove("hidden");
+      buscarItem();
+    } else {
+        showAlert("Usuário ou senha incorretos.");
+    }
+  }
+
+  function adicionarItem() {
+  const produto = document.getElementById("produto").value.trim().toUpperCase();
+  const codigo = document.getElementById("codigo").value.trim().toUpperCase();
+
+  if (!produto || !codigo) {
+    showAlert("Por favor, preencha o nome do produto e o código.");
+    return;
+  }
+
+  fetch(`${scriptURL}`)
+    .then(res => res.json())
+    .then(data => {
+      const existente = data.find(item => item.codigo.toString().trim().toUpperCase() === codigo);
+      if (existente) {
+        showAlert(`Este código (${codigo}) já está cadastrado para: ${existente.produto}`);
+        return;
+      }
+
+      fetch(scriptURL, {
+        method: "POST",
+        body: JSON.stringify({ acao: "adicionar", produto, codigo })
+      })
+        .then(res => res.text())
+        .then(() => {
+            showAlert("Produto adicionado!");
+          document.getElementById("produto").value = "";
+          document.getElementById("codigo").value = "";
+          buscarItem();
+        });
+    });
+}
+
+function buscarItem() {
+  const termo = document.getElementById("buscar").value.toLowerCase();
+  fetch(`${scriptURL}?q=${termo}`)
+    .then(res => res.json())
+    .then(data => {
+      const tbody = document.getElementById("resultado");
+      tbody.innerHTML = "";
+      let maiorCodigo = 0;
+      data.forEach(item => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td><span id="produto_${item.produto}">${item.produto}</span></td>
+          <td><span id="codigo_${item.produto}">${item.codigo}</span></td>
+          <td>
+            <button class="action-btn" onclick="habilitarEdicao('${item.produto}', '${item.codigo}')">Editar</button>
+            <button class="action-btn" onclick="excluirItem('${item.produto}')">Excluir</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+        const codigoNum = parseInt(item.codigo, 10);
+        if (!isNaN(codigoNum) && codigoNum > maiorCodigo) {
+          maiorCodigo = codigoNum;
+        }
+      });
+      document.getElementById("proximoCodigo").textContent = maiorCodigo + 1;
+    });
+}
+
+  function habilitarEdicao(produtoAntigo, codigoAntigo) {
+  const spanProduto = document.getElementById("produto_" + produtoAntigo);
+  const spanCodigo = document.getElementById("codigo_" + produtoAntigo);
+  spanProduto.outerHTML = `<input id="produto_edit_${produtoAntigo}" value="${produtoAntigo}">`;
+  spanCodigo.outerHTML = `<input id="codigo_edit_${produtoAntigo}" value="${codigoAntigo}">`;
+
+  const tr = document.getElementById("produto_edit_" + produtoAntigo).closest("tr");
+  const tdAcoes = tr.querySelector("td:last-child");
+  tdAcoes.innerHTML = `
+    <button class="action-btn" onclick="salvarEdicao('${produtoAntigo}', '${codigoAntigo}')">Salvar</button>
+    <button class="action-btn" onclick="buscarItem()">Cancelar</button>
+  `;
+}
+
+
+function salvarEdicao(produtoAntigo, codigoAntigo) {
+  const novoProduto = document.getElementById("produto_edit_" + produtoAntigo).value.trim().toUpperCase();
+  const novoCodigo = document.getElementById("codigo_edit_" + produtoAntigo).value.trim().toUpperCase();
+
+  fetch(scriptURL)
+    .then(res => res.json())
+    .then(data => {
+      const conflito = data.find(item => item.codigo === novoCodigo && item.produto !== produtoAntigo);
+      if (conflito) {
+        showAlert(`Este código (${novoCodigo}) já está em uso por: ${conflito.produto}`);
+        return;
+      }
+
+      fetch(scriptURL, {
+        method: "POST",
+        body: JSON.stringify({
+          acao: "editar",
+          produtoAntigo: produtoAntigo,
+          codigoAntigo: codigoAntigo,
+          produto: novoProduto,
+          codigo: novoCodigo
+        })
+      })
+        .then(response => response.text())
+        .then(msg => {
+          console.log("Resposta da edição:", msg);
+          showAlert("Produto editado com sucesso!");
+          buscarItem();
+        })
+        .catch(error => {
+          console.error("Erro ao salvar edição:", error);
+        });
+    });
+}
+
+
+
+  function excluirItem(produto) {
+    if (confirm("Deseja realmente excluir este item?")) {
+      fetch(scriptURL, {
+        method: "POST",
+        body: JSON.stringify({ acao: "excluir", produto })
+      }).then(() => buscarItem());
+    }
+  }
+
+  function showAlert(message) {
+  document.getElementById('alertMessage').innerText = message;
+  document.getElementById('customAlert').style.display = 'flex';
+}
+
+function closeAlert() {
+  document.getElementById('customAlert').style.display = 'none';
+}
+
+</script>
+</body>
+</html>
